@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>DeepSeek 智能对话 - 深度思考模式</title>
+    <style>
+      /* 样式保持不变 */
+      :root {
+        --primary-color: #2b6cb0;
+        --thinking-color: #4a5568;
+        --answer-color: #2d3748;
+        --transition-speed: 0.3s;
+      }
+
+      body {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 20px;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        line-height: 1.6;
+      }
+
+      #chat-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .chat-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 1.2rem;
+        border-radius: 12px 12px 0 0;
+      }
+
+      #response {
+        min-height: 300px;
+        max-height: 60vh;
+        padding: 1.5rem;
+        overflow-y: auto;
+        background: #f7fafc;
+      }
+
+      .thinking-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1.2rem;
+        margin: 1rem 0;
+        border-left: 4px solid var(--thinking-color);
+        box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05);
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      .thinking-title {
+        color: var(--thinking-color);
+        font-weight: 600;
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .thinking-content {
+        color: var(--thinking-color);
+        white-space: pre-wrap;
+        opacity: 0.9;
+        line-height: 1.8;
+      }
+
+      .answer-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1.2rem;
+        margin: 1.5rem 0;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.4s ease-out;
+        position: relative;
+      }
+
+      .answer-container::before {
+        content: "最终答案";
+        position: absolute;
+        top: -12px;
+        left: 20px;
+        background: var(--primary-color);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+      }
+
+      .answer-content {
+        color: var(--answer-color);
+        font-weight: 500;
+        line-height: 1.7;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 1rem;
+        padding: 1.2rem;
+        background: #f7fafc;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      #userInput {
+        flex: 1;
+        padding: 0.8rem 1.2rem;
+        border: 2px solid #cbd5e0;
+        border-radius: 8px;
+        transition: border-color 0.2s;
+      }
+
+      #userInput:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+      }
+
+      button {
+        background: var(--primary-color);
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      button:hover {
+        background: #2b6cb0dd;
+        transform: translateY(-1px);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .typing-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: 4px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out;
+      }
+
+      @keyframes typing {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chat-container">
+      <div class="chat-header">
+        <h2>DeepSeek 深度思考模式</h2>
+        <p>体验AI的完整推理过程</p>
+      </div>
+
+      <div id="response"></div>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="userInput"
+          placeholder="输入您的问题（支持回车发送）..."
+        />
+        <button onclick="sendMessage()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.179Z"
+            />
+          </svg>
+          发送
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const API_KEY = "sk-7b6b945ed4e649df9bf8b928ac8cbbec";
+      const BASE_URL =
+        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+
+      async function sendMessage() {
+        const userInput = document.getElementById("userInput");
+        const responseDiv = document.getElementById("response");
+        const question = userInput.value.trim();
+
+        if (!question) return;
+
+        userInput.value = "";
+
+        // 初始化显示
+        responseDiv.innerHTML = `
+          <div class="thinking-container">
+              <div class="thinking-title">
+                  <span class="typing-indicator"></span>
+                  思考中...
+              </div>
+              <div class="thinking-content"></div>
+          </div>
+        `;
+
+        try {
+          const response = await fetch(BASE_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "deepseek-r1",
+              messages: [{ role: "user", content: question }],
+              stream: true,
+            }),
+          });
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let isAnswering = false;
+          let thinkingContent = "";
+          let answerContent = "";
+
+          // 获取初始元素引用
+          let thinkingElement = responseDiv.querySelector(".thinking-content");
+          let answerElement = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n").filter((line) => line.trim());
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  // 处理思考过程
+                  if (data.choices[0]?.delta?.reasoning_content) {
+                    thinkingContent += data.choices[0].delta.reasoning_content;
+                    thinkingElement.textContent = thinkingContent;
+                    responseDiv.scrollTop = responseDiv.scrollHeight;
+                  }
+
+                  // 处理最终回答
+                  if (data.choices[0]?.delta?.content) {
+                    if (!isAnswering) {
+                      isAnswering = true;
+                      // 创建答案容器
+                      const answerContainer = document.createElement("div");
+                      answerContainer.className = "answer-container";
+                      answerContainer.innerHTML = `
+                        <div class="answer-content"></div>
+                      `;
+                      responseDiv.appendChild(answerContainer);
+                      answerElement =
+                        answerContainer.querySelector(".answer-content");
+                    }
+                    answerContent += data.choices[0].delta.content;
+                    answerElement.textContent = answerContent;
+                    responseDiv.scrollTop = responseDiv.scrollHeight;
+                  }
+                } catch (e) {
+                  console.error("解析错误:", e);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("请求失败:", error);
+          responseDiv.innerHTML = `
+            <div class="error-container">
+                <div class="error-content">请求失败: ${error.message}</div>
+            </div>
+          `;
+        }
+      }
+
+      // 支持回车键发送
+      document.getElementById("userInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+    </script>
+  </body>
+</html>
