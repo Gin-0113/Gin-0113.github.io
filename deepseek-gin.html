@@ -43,6 +43,7 @@
             border: 1px solid var(--border-color);
             background: var(--bot-bg);
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            animation: fadeIn 0.3s ease-in;
         }
 
         .user-message {
@@ -135,13 +136,6 @@
             white-space: pre-wrap;
         }
 
-        .message-content code {
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            background: rgba(0,0,0,0.05);
-            padding: 2px 4px;
-            border-radius: 3px;
-        }
-
         #input-container {
             position: fixed;
             bottom: 0;
@@ -160,6 +154,22 @@
             margin: 0 auto;
             display: flex;
             gap: 12px;
+            align-items: center;
+        }
+
+        #modelSelect {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.9);
+            font-size: 14px;
+            color: var(--text-primary);
+            width: 140px;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7A8F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
         }
 
         #userInput {
@@ -170,30 +180,24 @@
             font-size: 15px;
             background: rgba(255,255,255,0.9);
             transition: all 0.2s;
-        }
-
-        #userInput:focus {
-            outline: none;
-            border-color: rgba(107,122,143,0.4);
-            box-shadow: 0 0 0 3px rgba(107,122,143,0.1);
+            min-height: 46px;
+            resize: vertical;
         }
 
         button {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 22px;
+            padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
-            opacity: 0.9;
-            font-weight: 400;
-            letter-spacing: 0.5px;
             transition: all 0.2s;
+            font-weight: 400;
         }
 
         button:hover {
-            opacity: 1;
-            transform: translateY(-0.5px);
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
 
         .loading {
@@ -220,7 +224,11 @@
     <div id="chat-container"></div>
     <div id="input-container">
         <div class="input-wrapper">
-            <input type="text" id="userInput" placeholder="输入您的问题..." />
+            <select id="modelSelect">
+                <option value="deepseek-r1">深度思考模式</option>
+                <option value="deepseek-v3">快速响应模式</option>
+            </select>
+            <textarea id="userInput" placeholder="输入您的问题..." rows="1"></textarea>
             <button id="sendButton">
                 <span id="buttonText">发送</span>
             </button>
@@ -228,53 +236,53 @@
     </div>
 
     <script>
-        // 本地Markdown解析器
+        // 模型管理器
+        const ModelManager = {
+            currentModel: 'deepseek-r1',
+            histories: {
+                'deepseek-r1': [],
+                'deepseek-v3': []
+            },
+            switchModel(newModel) {
+                if (newModel !== this.currentModel) {
+                    this.currentModel = newModel;
+                }
+            },
+            getHistory() {
+                return this.histories[this.currentModel];
+            },
+            addMessage(message) {
+                this.histories[this.currentModel].push(message);
+            }
+        };
+
+        // Markdown解析器
         const parseMarkdown = (text) => {
-            // 代码块处理
-            text = text.replace(/```([\s\S]*?)```/g, (match, code) => {
-                return `<pre><code>${code.trim()}</code></pre>`;
-            });
-
-            // 行内代码
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-            // 粗体
-            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-            // 斜体
-            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-            // 链接
-            text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
-
-            // 图片
-            text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;">');
-
-            // 换行处理
-            text = text.replace(/\n/g, '<br>');
-
-            return text;
+            return text
+                .replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`)
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
+                .replace(/\n/g, '<br>');
         };
 
         const API_KEY = "sk-7b6b945ed4e649df9bf8b928ac8cbbec";
-
         const BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
         
         let isGenerating = false;
         let controller = null;
-        const messageHistory = [];
 
+        // 智能滚动控制
         let autoScroll = true;
         window.addEventListener('scroll', () => {
-            const threshold = 100;
             const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-            autoScroll = (scrollTop + clientHeight) >= (scrollHeight - threshold);
+            autoScroll = (scrollTop + clientHeight) >= (scrollHeight - 100);
         });
 
         async function createMessageElement(role, content) {
             const container = document.createElement('div');
             container.className = `message ${role}-message`;
-            container.style.animation = 'fadeIn 0.3s ease-in';
             
             const header = document.createElement('div');
             header.className = 'message-header';
@@ -298,6 +306,7 @@
             let fullResponse = '';
             let reasoningContent = '';
             const contentDiv = messageElement.querySelector('.message-content');
+            const isDeepSeekR1 = ModelManager.currentModel === 'deepseek-r1';
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -315,10 +324,12 @@
                             const delta = data.choices[0].delta;
 
                             if (delta?.content) fullResponse += delta.content;
-                            if (delta?.reasoning_content) reasoningContent += delta.reasoning_content;
+                            if (isDeepSeekR1 && delta?.reasoning_content) {
+                                reasoningContent += delta.reasoning_content;
+                            }
 
                             let contentHTML = '';
-                            if (reasoningContent) {
+                            if (isDeepSeekR1 && reasoningContent) {
                                 contentHTML += `
                                     <div class="thinking-section">
                                         ${parseMarkdown(reasoningContent)}
@@ -362,13 +373,16 @@
             document.getElementById('buttonText').innerHTML = '<div class="loading"></div>';
 
             try {
-                messageHistory.push({ role: "user", content: question });
+                // 添加用户消息
+                ModelManager.addMessage({ role: "user", content: question });
                 const userMessage = await createMessageElement('user', question);
                 document.getElementById('chat-container').appendChild(userMessage);
 
+                // 创建机器人消息
                 const botMessage = await createMessageElement('bot', '');
                 document.getElementById('chat-container').appendChild(botMessage);
 
+                // 发送请求
                 controller = new AbortController();
                 const response = await fetch(BASE_URL, {
                     method: 'POST',
@@ -377,8 +391,8 @@
                         'Authorization': `Bearer ${API_KEY}`
                     },
                     body: JSON.stringify({
-                        model: "deepseek-r1",
-                        messages: messageHistory,
+                        model: ModelManager.currentModel,
+                        messages: ModelManager.getHistory(),
                         stream: true
                     }),
                     signal: controller.signal
@@ -386,13 +400,15 @@
 
                 if (!response.ok) throw new Error(`请求失败: ${response.status}`);
 
+                // 处理流式响应
                 const reader = response.body.getReader();
                 const { fullResponse, reasoningContent } = await processStream(reader, botMessage);
 
-                messageHistory.push({ 
+                // 保存响应
+                ModelManager.addMessage({ 
                     role: "assistant",
                     content: fullResponse,
-                    reasoning: reasoningContent 
+                    ...(ModelManager.currentModel === 'deepseek-r1' && { reasoning: reasoningContent })
                 });
 
             } catch (error) {
@@ -417,12 +433,16 @@
             }
         }
 
+        // 事件绑定
         document.getElementById('sendButton').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
+        });
+        document.getElementById('modelSelect').addEventListener('change', (e) => {
+            ModelManager.switchModel(e.target.value);
         });
     </script>
 </body>
