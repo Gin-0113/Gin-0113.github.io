@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8" />
     <title>DeepSeek 智能对话</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
-            --primary: #2A5CAA;
-            --bg-color: #ffffff;
-            --user-bg: #f0f6ff;
-            --bot-bg: #f8f9fa;
-            --text-primary: #1a1a1a;
-            --text-secondary: #666;
+            --primary: #6B7A8F;
+            --bg-color: #f9f5f0;
+            --user-bg: #F0EEE9;
+            --bot-bg: #FFFFFF;
+            --text-primary: #4A4A4A;
+            --border-color: #E0DED9;
         }
 
         * {
@@ -23,72 +20,126 @@
         }
 
         body {
-            background: var(--bg-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            line-height: 1.6;
+            font-family: "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            font-weight: 300;
+            color: var(--text-primary);
+            background-image: linear-gradient(to bottom, 
+                rgba(245,242,237,0.3) 0%, 
+                rgba(249,245,240,1) 20px);
+            line-height: 1.7;
         }
 
         #chat-container {
-            max-width: 800px;
+            max-width: 760px;
             margin: 0 auto;
-            padding: 20px 20px 120px; /* 解决底部遮挡问题 */
+            padding: 40px 20px 160px;
             min-height: 100vh;
         }
 
         .message {
-            margin: 20px 0;
-            padding: 24px;
-            border-radius: 12px;
-            animation: fadeIn 0.3s ease-in;
+            margin: 24px 0;
+            padding: 20px 24px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bot-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
         .user-message {
-            background: var(--user-bg);
-            border: 1px solid #e0e7ff;
-        }
-
-        .bot-message {
-            background: var(--bot-bg);
-            border: 1px solid #e5e7eb;
+            background: var(--user-bg) linear-gradient(to right, 
+                rgba(255,255,255,0.6) 0%, 
+                rgba(255,255,255,0) 100%);
         }
 
         .message-header {
             display: flex;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
             margin-right: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-weight: bold;
+            font-size: 14px;
+            background: rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.08);
         }
 
         .user-avatar {
-            background: #2A5CAA;
+            color: #6B7A8F;
+            background: rgba(107,122,143,0.12);
         }
 
         .bot-avatar {
-            background: #4a5568;
+            color: #8C8C8C;
+            background: rgba(140,140,140,0.08);
         }
 
-        .message-content {
-            overflow-x: auto;
+        .thinking-section {
+            background: rgba(245,243,240,0.6);
+            border-radius: 4px;
+            padding: 16px;
+            margin: 12px 0;
+            position: relative;
+            border-left: 3px solid rgba(140,140,140,0.15);
+        }
+
+        .thinking-section::before {
+            content: "思考过程";
+            display: block;
+            font-size: 13px;
+            color: #8C8C8C;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .answer-section {
+            padding: 16px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 4px;
+            margin: 12px 0;
+        }
+
+        .separator {
+            height: 1px;
+            background: rgba(0,0,0,0.08);
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .separator::after {
+            content: "✦";
+            position: absolute;
+            left: 50%;
+            top: -7px;
+            transform: translateX(-50%);
+            background: var(--bot-bg);
+            color: rgba(0,0,0,0.3);
+            padding: 0 4px;
+            font-size: 12px;
         }
 
         .message-content pre {
-            background: #1e293b;
-            color: #f8fafc;
+            background: #f5f3f0;
+            border: 1px solid #e5e3e0;
+            color: var(--text-primary);
             padding: 16px;
-            border-radius: 8px;
+            border-radius: 4px;
             overflow-x: auto;
-            margin: 12px 0;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            white-space: pre-wrap;
+        }
+
+        .message-content code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 3px;
         }
 
         #input-container {
@@ -96,14 +147,16 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--bg-color);
+            background: rgba(249,245,240,0.88);
             padding: 20px;
-            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.02);
             z-index: 100;
         }
 
         .input-wrapper {
-            max-width: 800px;
+            max-width: 760px;
             margin: 0 auto;
             display: flex;
             gap: 12px;
@@ -111,43 +164,55 @@
 
         #userInput {
             flex: 1;
-            padding: 14px 20px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 12px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 15px;
+            background: rgba(255,255,255,0.9);
+            transition: all 0.2s;
+        }
+
+        #userInput:focus {
+            outline: none;
+            border-color: rgba(107,122,143,0.4);
+            box-shadow: 0 0 0 3px rgba(107,122,143,0.1);
         }
 
         button {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: 10px 22px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background 0.2s;
+            opacity: 0.9;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
         }
 
         button:hover {
-            background: #234b88;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            opacity: 1;
+            transform: translateY(-0.5px);
         }
 
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(0,0,0,0.1);
-            border-top-color: var(--primary);
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-top-color: rgba(107,122,143,0.4);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -163,15 +228,33 @@
     </div>
 
     <script>
-        // 配置Markdown解析
-        marked.setOptions({
-            highlight: (code, lang) => {
-                const validLang = hljs.getLanguage(lang) ? lang : 'plaintext';
-                return hljs.highlight(code, { language: validLang }).value;
-            },
-            breaks: true,
-            gfm: true
-        });
+        // 本地Markdown解析器
+        const parseMarkdown = (text) => {
+            // 代码块处理
+            text = text.replace(/```([\s\S]*?)```/g, (match, code) => {
+                return `<pre><code>${code.trim()}</code></pre>`;
+            });
+
+            // 行内代码
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 粗体
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // 斜体
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // 链接
+            text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+            // 图片
+            text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;">');
+
+            // 换行处理
+            text = text.replace(/\n/g, '<br>');
+
+            return text;
+        };
 
         const API_KEY = "sk-7b6b945ed4e649df9bf8b928ac8cbbec";
 
@@ -179,9 +262,8 @@
         
         let isGenerating = false;
         let controller = null;
-        const messageHistory = []; // 存储完整对话上下文
+        const messageHistory = [];
 
-        // 智能滚动控制
         let autoScroll = true;
         window.addEventListener('scroll', () => {
             const threshold = 100;
@@ -192,6 +274,7 @@
         async function createMessageElement(role, content) {
             const container = document.createElement('div');
             container.className = `message ${role}-message`;
+            container.style.animation = 'fadeIn 0.3s ease-in';
             
             const header = document.createElement('div');
             header.className = 'message-header';
@@ -202,7 +285,7 @@
 
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            contentDiv.innerHTML = marked.parse(content);
+            contentDiv.innerHTML = parseMarkdown(content);
 
             header.appendChild(avatar);
             container.appendChild(header);
@@ -214,7 +297,6 @@
             const decoder = new TextDecoder();
             let fullResponse = '';
             let reasoningContent = '';
-            
             const contentDiv = messageElement.querySelector('.message-content');
 
             while (true) {
@@ -232,19 +314,27 @@
                             const data = JSON.parse(line.slice(6));
                             const delta = data.choices[0].delta;
 
-                            // 更新上下文记录
                             if (delta?.content) fullResponse += delta.content;
                             if (delta?.reasoning_content) reasoningContent += delta.reasoning_content;
 
-                            // 合并显示思考过程和最终回答
-                            const combinedContent = reasoningContent 
-                                ? `${reasoningContent}\n\n${fullResponse}`
-                                : fullResponse;
+                            let contentHTML = '';
+                            if (reasoningContent) {
+                                contentHTML += `
+                                    <div class="thinking-section">
+                                        ${parseMarkdown(reasoningContent)}
+                                    </div>
+                                    <div class="separator"></div>
+                                `;
+                            }
+                            
+                            contentHTML += `
+                                <div class="answer-section">
+                                    ${parseMarkdown(fullResponse)}
+                                </div>
+                            `;
 
-                            contentDiv.innerHTML = marked.parse(combinedContent);
-                            hljs.highlightAll();
+                            contentDiv.innerHTML = contentHTML;
 
-                            // 智能滚动
                             if (autoScroll) {
                                 window.scrollTo({
                                     top: document.documentElement.scrollHeight,
@@ -272,14 +362,10 @@
             document.getElementById('buttonText').innerHTML = '<div class="loading"></div>';
 
             try {
-                // 添加用户消息到历史
                 messageHistory.push({ role: "user", content: question });
-                
-                // 创建用户消息元素
                 const userMessage = await createMessageElement('user', question);
                 document.getElementById('chat-container').appendChild(userMessage);
 
-                // 创建bot消息元素
                 const botMessage = await createMessageElement('bot', '');
                 document.getElementById('chat-container').appendChild(botMessage);
 
@@ -298,14 +384,11 @@
                     signal: controller.signal
                 });
 
-                if (!response.ok) {
-                    throw new Error(`请求失败: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
 
                 const reader = response.body.getReader();
                 const { fullResponse, reasoningContent } = await processStream(reader, botMessage);
 
-                // 更新对话历史
                 messageHistory.push({ 
                     role: "assistant",
                     content: fullResponse,
@@ -315,8 +398,15 @@
             } catch (error) {
                 console.error(error);
                 const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = error.message;
+                errorDiv.className = 'message bot-message';
+                errorDiv.innerHTML = `
+                    <div class="message-header">
+                        <div class="avatar bot-avatar">!</div>
+                    </div>
+                    <div class="message-content" style="color:#ff4444">
+                        ${error.message}
+                    </div>
+                `;
                 document.getElementById('chat-container').appendChild(errorDiv);
             } finally {
                 isGenerating = false;
@@ -327,7 +417,6 @@
             }
         }
 
-        // 事件绑定
         document.getElementById('sendButton').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
