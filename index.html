@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeepSeek 智能对话</title>
+    <style>
+        :root {
+            --primary: #6B7A8F;
+            --bg-color: #f9f5f0;
+            --user-bg: #F0EEE9;
+            --bot-bg: #FFFFFF;
+            --text-primary: #4A4A4A;
+            --border-color: #E0DED9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-weight: 300;
+            color: var(--text-primary);
+            background-image: linear-gradient(to bottom, 
+                rgba(245,242,237,0.3) 0%, 
+                rgba(249,245,240,1) 20px);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #chat-container {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 40px 20px 160px;
+            min-height: 100vh;
+        }
+
+        .message {
+            margin: 24px 0;
+            padding: 20px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bot-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .user-message {
+            background: var(--user-bg) linear-gradient(to right, 
+                rgba(255,255,255,0.6) 0%, 
+                rgba(255,255,255,0) 100%);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .user-avatar {
+            color: #6B7A8F;
+            background: rgba(107,122,143,0.12);
+        }
+
+        .bot-avatar {
+            color: #8C8C8C;
+            background: rgba(140,140,140,0.08);
+        }
+
+        .thinking-section {
+            background: rgba(245,243,240,0.6);
+            border-radius: 4px;
+            padding: 16px;
+            margin: 12px 0;
+            position: relative;
+            border-left: 3px solid rgba(140,140,140,0.15);
+        }
+
+        .thinking-section::before {
+            content: "思考过程";
+            display: block;
+            font-size: 13px;
+            color: #8C8C8C;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .answer-section {
+            padding: 16px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 4px;
+            margin: 12px 0;
+        }
+
+        .separator {
+            height: 1px;
+            background: rgba(0,0,0,0.08);
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .separator::after {
+            content: "✦";
+            position: absolute;
+            left: 50%;
+            top: -7px;
+            transform: translateX(-50%);
+            background: var(--bot-bg);
+            color: rgba(0,0,0,0.3);
+            padding: 0 4px;
+            font-size: 12px;
+        }
+
+        .message-content pre {
+            background: #f5f3f0;
+            border: 1px solid #e5e3e0;
+            color: var(--text-primary);
+            padding: 16px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            white-space: pre-wrap;
+        }
+
+        #input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(249,245,240,0.95);
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.02);
+            z-index: 100;
+        }
+
+        .input-wrapper {
+            max-width: 760px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        #modelSelect {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.9);
+            font-size: 14px;
+            color: var(--text-primary);
+            width: 140px;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7A8F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 12px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.9);
+            transition: all 0.2s;
+            min-height: 46px;
+            resize: vertical;
+            -webkit-appearance: none;
+            line-height: 1.5;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 400;
+            flex-shrink: 0;
+        }
+
+        #stopButton {
+            background: #ff4444;
+            display: none;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-top-color: rgba(107,122,143,0.4);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @media (max-width: 768px) {
+            #chat-container {
+                padding: 20px 12px 120px;
+            }
+
+            .message {
+                margin: 16px 0;
+                padding: 16px;
+                border-radius: 8px;
+            }
+
+            #input-container {
+                padding: 16px;
+            }
+
+            .input-wrapper {
+                gap: 8px;
+            }
+
+            #modelSelect {
+                width: 120px;
+                padding: 8px 10px;
+                font-size: 13px;
+                background-position: right 6px center;
+            }
+
+            #userInput {
+                font-size: 16px;
+                padding: 10px 14px;
+                min-height: 44px;
+            }
+
+            button {
+                padding: 10px 16px;
+                min-width: 64px;
+            }
+
+            .avatar {
+                width: 24px;
+                height: 24px;
+                font-size: 13px;
+            }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container"></div>
+    <div id="input-container">
+        <div class="input-wrapper">
+            <select id="modelSelect">
+                <option value="deepseek-r1">深度思考模式</option>
+                <option value="deepseek-v3">快速响应模式</option>
+            </select>
+            <textarea id="userInput" placeholder="输入您的问题..." rows="1"></textarea>
+            <button id="stopButton">停止</button>
+            <button id="sendButton">
+                <span id="buttonText">发送</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "sk-7b6b945ed4e649df9bf8b928ac8cbbec";
+        const BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+        
+        const ModelManager = {
+            currentModel: 'deepseek-r1',
+            histories: {
+                'deepseek-r1': [],
+                'deepseek-v3': []
+            },
+            switchModel(newModel) {
+                if (newModel !== this.currentModel) {
+                    this.currentModel = newModel;
+                }
+            },
+            getHistory() {
+                return this.histories[this.currentModel];
+            },
+            addMessage(message) {
+                this.histories[this.currentModel].push(message);
+            }
+        };
+
+        let isGenerating = false;
+        let controller = null;
+        const sendButton = document.getElementById('sendButton');
+        const stopButton = document.getElementById('stopButton');
+
+        function toggleButtons(showStop) {
+            sendButton.style.display = showStop ? 'none' : 'flex';
+            stopButton.style.display = showStop ? 'flex' : 'none';
+        }
+
+        function stopGenerating() {
+            if (controller) {
+                controller.abort();
+                isGenerating = false;
+                document.getElementById('buttonText').textContent = '发送';
+                document.getElementById('userInput').disabled = false;
+                controller = null;
+                toggleButtons(false);
+            }
+        }
+
+        const parseMarkdown = (text) => {
+            return text
+                .replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`)
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
+                .replace(/\n/g, '<br>');
+        };
+
+        let autoScroll = true;
+        window.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            autoScroll = (scrollTop + clientHeight) >= (scrollHeight - 100);
+        });
+
+        async function createMessageElement(role, content) {
+            const container = document.createElement('div');
+            container.className = `message ${role}-message`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            
+            const avatar = document.createElement('div');
+            avatar.className = `avatar ${role}-avatar`;
+            avatar.textContent = role === 'user' ? 'U' : 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = parseMarkdown(content);
+
+            header.appendChild(avatar);
+            container.appendChild(header);
+            container.appendChild(contentDiv);
+            return container;
+        }
+
+        async function processStream(reader, messageElement) {
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            let reasoningContent = '';
+            const contentDiv = messageElement.querySelector('.message-content');
+            const isDeepSeekR1 = ModelManager.currentModel === 'deepseek-r1';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(l => l.trim());
+
+                for (const line of lines) {
+                    if (line.trim() === 'data: [DONE]') continue;
+                    
+                    try {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            const delta = data.choices[0].delta;
+
+                            if (delta?.content) fullResponse += delta.content;
+                            if (isDeepSeekR1 && delta?.reasoning_content) {
+                                reasoningContent += delta.reasoning_content;
+                            }
+
+                            let contentHTML = '';
+                            if (isDeepSeekR1 && reasoningContent) {
+                                contentHTML += `
+                                    <div class="thinking-section">
+                                        ${parseMarkdown(reasoningContent)}
+                                    </div>
+                                    <div class="separator"></div>
+                                `;
+                            }
+                            
+                            contentHTML += `
+                                <div class="answer-section">
+                                    ${parseMarkdown(fullResponse)}
+                                </div>
+                            `;
+
+                            contentDiv.innerHTML = contentHTML;
+
+                            if (autoScroll) {
+                                window.scrollTo({
+                                    top: document.documentElement.scrollHeight,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('解析错误:', e);
+                    }
+                }
+            }
+            return { fullResponse, reasoningContent };
+        }
+
+        async function sendMessage() {
+            if (isGenerating) return;
+            
+            const userInput = document.getElementById('userInput');
+            const question = userInput.value.trim();
+            if (!question) return;
+
+            isGenerating = true;
+            userInput.disabled = true;
+            toggleButtons(true);
+
+            try {
+                ModelManager.addMessage({ role: "user", content: question });
+                const userMessage = await createMessageElement('user', question);
+                document.getElementById('chat-container').appendChild(userMessage);
+
+                const botMessage = await createMessageElement('bot', '');
+                document.getElementById('chat-container').appendChild(botMessage);
+
+                controller = new AbortController();
+                const response = await fetch(BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: ModelManager.currentModel,
+                        messages: ModelManager.getHistory(),
+                        stream: true
+                    }),
+                    signal: controller.signal
+                });
+
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+                const reader = response.body.getReader();
+                const { fullResponse, reasoningContent } = await processStream(reader, botMessage);
+
+                ModelManager.addMessage({ 
+                    role: "assistant",
+                    content: fullResponse,
+                    ...(ModelManager.currentModel === 'deepseek-r1' && { reasoning: reasoningContent })
+                });
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    const abortDiv = document.createElement('div');
+                    abortDiv.className = 'message bot-message';
+                    abortDiv.innerHTML = `
+                        <div class="message-header">
+                            <div class="avatar bot-avatar">!</div>
+                        </div>
+                        <div class="message-content" style="color:#888">
+                            已停止生成
+                        </div>
+                    `;
+                    document.getElementById('chat-container').appendChild(abortDiv);
+                } else {
+                    console.error(error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'message bot-message';
+                    errorDiv.innerHTML = `
+                        <div class="message-header">
+                            <div class="avatar bot-avatar">!</div>
+                        </div>
+                        <div class="message-content" style="color:#ff4444">
+                            ${error.message}
+                        </div>
+                    `;
+                    document.getElementById('chat-container').appendChild(errorDiv);
+                }
+            } finally {
+                isGenerating = false;
+                userInput.disabled = false;
+                toggleButtons(false);
+                controller = null;
+                userInput.focus();
+            }
+        }
+
+        // 事件绑定
+        document.getElementById('sendButton').addEventListener('click', sendMessage);
+        stopButton.addEventListener('click', stopGenerating);
+        document.getElementById('userInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !isGenerating) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        document.getElementById('modelSelect').addEventListener('change', (e) => {
+            ModelManager.switchModel(e.target.value);
+        });
+
+        // 自动调整输入框高度
+        document.getElementById('userInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    </script>
+</body>
+</html>
